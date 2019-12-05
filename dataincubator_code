@@ -1,0 +1,68 @@
+
+import pandas as pd
+
+#load csv and save 'Arrest Date' in to_datetime format in new column 'date'
+df = pd.read_csv('/Users/umarsharif/SQL/Arrest_Data_from_2010_to_Present.csv')
+df['date'] = pd.to_datetime(df['Arrest Date'])
+
+#question 1
+df[(df.date<'2019-01-01') & (df.date>'2017-12-31')].count()
+
+#question 2
+df[(df.date<'2019-01-01') & (df.date>'2017-12-31')].groupby('Area Name').size().max()
+
+#question 3
+df[ ((df.date<'2019-01-01') & (df.date>'2017-12-31')) &
+    ((df['Charge Group Description']=='Homicide') | (df['Charge Group Description']=='Burglary') | 
+  (df['Charge Group Description']=='Vehicle Theft') | 
+     (df['Charge Group Description']=='Receive Stolen Property'))]['Age'].quantile(.95)
+
+#question 4
+#drop NaN
+df4= df.dropna(subset=['Charge Group Description'])
+
+#extraction based on conditions
+df4 = df4[(df4.date<'2019-01-01') & (df.date>'2017-12-31') & 
+        (df4['Charge Group Description']!='Pre-Delinquency') 
+        & (df4['Charge Group Description']!='Non-Criminal Detention')]
+#average age for each group
+avg_age = df4.groupby(['Charge Group Description'])['Age'].mean()
+
+#calculate z value and find max absolute
+avg4 = avg_age.mean()
+std4 = avg_age.std()
+z = (avg_age-avg4)/std4
+z.max()
+
+#Question 5
+# Felony = 'Burglary','Himicide'.....
+df5 = df[(df['Charge Group Description']=='Burglary') | (df['Charge Group Description']=='Homicide') |
+        (df['Charge Group Description']=='Larceny') |(df['Charge Group Description']=='Rape') |
+        (df['Charge Group Description']=='Robbery') |(df['Charge Group Description']=='Vehicle Theft') |
+        (df['Charge Group Description']=='Weapon (carry/poss)') |(df['Charge Group Description']=='Aggravated Assault') |
+        (df['Charge Group Description']=='Narcotic Drug Laws') |(df['Charge Group Description']=='Forgery/Counterfeit') |
+        (df['Charge Group Description']=='')]
+
+yearly_data = df5[(df5.date<'2019-01-01') & (df.date>'2009-12-31')].groupby('year').size()
+yearly_data.plot(grid = True)
+
+# Question 8
+
+#dropping NaN on 'Charge Group Code' and saving it in new dataframe ndf
+ndf = df.dropna(subset=['Charge Group Code'])
+
+# dropping 99.0 and all dates including & after 2019-01-01
+ndf=ndf[(ndf['date']<'2019-01-1') & (ndf['Charge Group Code']!=99.0)]
+
+#rate of each charge in each area
+ratio_chargebyarea = ndf.groupby(['Area ID','Charge Group Code']).size()/ndf.groupby(['Area ID']).size()
+
+#rate of each charge for the whole city
+ratio_chargetotal = ndf.groupby('Charge Group Code').size()/ndf['Charge Group Code'].count()
+
+#ratio of each charge in each area compared to the whole city
+ratio = ratio_chargebyarea/ratio_chargetotal
+
+#pick mean of the 5 largest
+ratio.nlargest(5).mean()
+>>3.515076379865202
